@@ -22,9 +22,9 @@ class GRUGate(nn.Module): # gated recurrent unit
             self.linear_w_z.bias.fill_(-2)
 
     def forward(self, x, y):
-        z = torch.sigmoid(self.linear_w_z(y) + self.linear_u_z(x))
-        r = torch.sigmoid(self.linear_w_r(y) + self.linear_u_r(x))
-        h_hat = torch.tanh(self.linear_w_g(y) + self.linear_u_g(r*x))
+        z = torch.sigmoid(self.linear_w_z(y) + self.linear_u_z(x)) # for the reset gate
+        r = torch.sigmoid(self.linear_w_r(y) + self.linear_u_r(x)) #for the update gate
+        h_hat = torch.tanh(self.linear_w_g(y) + self.linear_u_g(r*x)) #for the candidate hidden state
         return (1.-z)*x + z*h_hat
 
 
@@ -65,7 +65,7 @@ class MultiHeadAttention(nn.Module):
         k = self.w_ks(k).view(sz_b, len_k, n_head, d_k)
         v = self.w_vs(v).view(sz_b, len_v, n_head, d_k)
 
-        q = q.permute(2, 0, 1, 3).contiguous().view(-1, len_q, d_k) # (n*b) x lq x dk
+        q = q.permute(2, 0, 1, 3).contiguous().view(-1, len_q, d_k) # (n*b) x lq x dk ,permute(2, 0, 1, 3) - rearrange the dimension in the order as 2nd dim as 0th dim, 0 th dim as 1st dim
         k = k.permute(2, 0, 1, 3).contiguous().view(-1, len_k, d_k) # (n*b) x lk x dk
         v = v.permute(2, 0, 1, 3).contiguous().view(-1, len_v, d_k) # (n*b) x lv x dv
 
@@ -105,7 +105,7 @@ class ScaledDotProductAttention(nn.Module):
     def forward(self, q, k, v, adj): # 
         attn = torch.bmm(q, k.transpose(1, 2)) # torch.bmm - product of matrices q and k transpose (QK⊤)
         attn = attn / self.temperature # temperature=np.power(d_k, 0.5) which suare root of dk(32) which is 5.66 (QK⊤√dk)
-        attn = attn.masked_fill(adj == 0, -np.inf) 
+        attn = attn.masked_fill(adj == 0, -np.inf) # adj == 0 checks for elements in the 177x177 matrix adj that are equal to 0 fills elements in attn with -np.inf, have negligible influence in subsequent computations, such as softmax or attention calculations.
         attn = self.dropout(F.softmax(attn, dim=-1)) #softmax(QK⊤√dk)
         output = torch.matmul(attn, v) # softmax(QK⊤√dk)V
         return output

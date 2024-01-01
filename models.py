@@ -12,7 +12,7 @@ class GATLayer(nn.Module):
         self.slf_attn = MultiHeadAttention(nheads, output_dim, output_dim//4, dropout=dropout)
         self.pos_ffn = PositionwiseFeedForward(output_dim, output_dim, dropout=dropout)
     
-    def forward(self, x, adj):
+    def forward(self, x, adj): #adj = connectivity_matrix() 177x177 + identity matrix
         x = self.slf_attn(x, adj)
         x = self.pos_ffn(x)
         return x
@@ -152,7 +152,7 @@ class EncoderLayer(nn.Module):
         self.gat5 = GATLayer(output_dim, nheads, dropout)
         self.gat6 = GATLayer(output_dim, nheads, dropout)
 
-    def forward(self, x, adj):
+    def forward(self, x, adj): #adj = connectivity_matrix() 177x177 + identity matrix
         x = self.linear(x)
         x = self.gat1(x, adj)
         x = self.gat2(x, adj)
