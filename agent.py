@@ -183,7 +183,9 @@ class Agent(BaseAgent):
         return None
 
     def get_current_state(self):
-        return torch.cat(self.stacked_obs + [self.topo], dim=-1)
+        ''' self.stacked_obs , 1, 177, 30 becuase each obseravtion has p_, rho_, danger_, over_, main_ which are of 177 dimensions. thus it make each observation of shape 177x5 
+        and in stacked_obs we have 6 past observations therefore the shape of stacked_obs in 177x30 and topo in 177x1. therefore this function returns an tensor of shape 177x31.'''
+        return torch.cat(self.stacked_obs + [self.topo], dim=-1) 
 
     def act(self, obs, reward, done):
         sample = (reward is None)
@@ -240,8 +242,8 @@ class Agent(BaseAgent):
         with torch.no_grad():
             # stacked_state # B, N, F
             stacked_t, stacked_x = stacked_state[..., -1:], stacked_state[..., :-1]
-            emb_input = stacked_x 
-            state = self.emb(emb_input, adj).detach()
+            emb_input = stacked_x # stacked_x.shape - 177x30, which means last 5 p_, rho_, danger_, over_, main_ observations
+            state = self.emb(emb_input, adj).detach() # multiheadded attention
             actor_input = [state, stacked_t.squeeze(-1)]
             if sample:
                 action, std = self.actor.sample(actor_input, adj)
@@ -268,7 +270,7 @@ class Agent(BaseAgent):
         return goal, bus_goal, low_actions, order, Q1, Q2
 
     def generate_goal(self, sample, obs, nosave=False):
-        stacked_state = self.get_current_state().to(self.device) # Last 5 observations + bus assigments of all the elements
+        stacked_state = self.get_current_state().to(self.device) # Last 5 observations + bus assigments of all the elements, tensor of shape 177x31 (details above in get_current_state function)
         adj = self.adj.unsqueeze(0) # matrix with 177x177 about connectivity matrix (details related to elements connected to same bus and same substation)
         goal, bus_goal, low_actions, order, Q1, Q2 = self.make_candidate_goal(stacked_state, adj, sample, obs)
         return goal, bus_goal, low_actions, order, Q1, Q2

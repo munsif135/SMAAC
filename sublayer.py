@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 
 
-class GRUGate(nn.Module):
+class GRUGate(nn.Module): # gated recurrent unit
     def __init__(self, d_model):
         super(GRUGate,self).__init__()
 
@@ -40,14 +40,14 @@ class MultiHeadAttention(nn.Module):
         nn.init.normal_(self.w_qs.weight, mean=0, std=np.sqrt(2.0 / (d_model + d_k))) #nn.init.normal_ : Initializes a tensor with values drawn from a normal distribution.
         nn.init.normal_(self.w_ks.weight, mean=0, std=np.sqrt(2.0 / (d_model + d_k)))
         nn.init.normal_(self.w_vs.weight, mean=0, std=np.sqrt(2.0 / (d_model + d_k)))
-        self.attention = ScaledDotProductAttention(temperature=np.power(d_k, 0.5), attn_dropout=dropout)
-        self.ln= nn.LayerNorm(d_model)
+        self.attention = ScaledDotProductAttention(temperature=np.power(d_k, 0.5), attn_dropout=dropout) # ScaledDotProductAttention or self attention
+        self.ln= nn.LayerNorm(d_model) # Normalizes the activations of a neural network layer
         self.fc = nn.Linear(n_head * d_k, d_model)
-        nn.init.xavier_normal_(self.fc.weight)
+        nn.init.xavier_normal_(self.fc.weight) # xavier_normal_ - Initializes the weights of a neural network layer with weights of self.fc layer 
         self.dropout = nn.Dropout(dropout)
         self.gate = GRUGate(d_model)
             
-    def forward(self, x, adj):
+    def forward(self, x, adj): # connectivity_matrix +  identity matrix
         residual = x
         x = self.ln(x)
         q = x
@@ -60,7 +60,8 @@ class MultiHeadAttention(nn.Module):
         sz_b, len_k, _ = k.size()
         sz_b, len_v, _ = v.size()
         
-        q = self.w_qs(q).view(sz_b, len_q, n_head, d_k)
+        #splitting the result of self.w_qs(q) along the axis of 
+        q = self.w_qs(q).view(sz_b, len_q, n_head, d_k) #.view() Reshapes a tensor without making a copy of its data.
         k = self.w_ks(k).view(sz_b, len_k, n_head, d_k)
         v = self.w_vs(v).view(sz_b, len_v, n_head, d_k)
 
@@ -95,15 +96,16 @@ class PositionwiseFeedForward(nn.Module):
         
         
 class ScaledDotProductAttention(nn.Module):
+    #implemention Attention(Q,K,V)=softmax(QK⊤√dk)V
     def __init__(self, temperature, attn_dropout=0):
         super().__init__()
         self.temperature = temperature #
         self.dropout = nn.Dropout(attn_dropout)
 
     def forward(self, q, k, v, adj): # 
-        attn = torch.bmm(q, k.transpose(1, 2)) # torch.bmm - product of matrices q and k transpose
-        attn = attn / self.temperature # temperature=np.power(d_k, 0.5) which suare root of dk(32) which is 5.66 
-        attn = attn.masked_fill(adj == 0, -np.inf)
-        attn = self.dropout(F.softmax(attn, dim=-1))
-        output = torch.matmul(attn, v)
+        attn = torch.bmm(q, k.transpose(1, 2)) # torch.bmm - product of matrices q and k transpose (QK⊤)
+        attn = attn / self.temperature # temperature=np.power(d_k, 0.5) which suare root of dk(32) which is 5.66 (QK⊤√dk)
+        attn = attn.masked_fill(adj == 0, -np.inf) 
+        attn = self.dropout(F.softmax(attn, dim=-1)) #softmax(QK⊤√dk)
+        output = torch.matmul(attn, v) # softmax(QK⊤√dk)V
         return output
