@@ -48,8 +48,9 @@ class graphGoalConverter:
             self.subs[sub_id]['e'].append(ex_id)
     
         '''
-        subs = [{'e': [], 'o': [2], 'g': [], 'l': [0, 1]}, #loads 0 and 1 are connected to substation 1
-        {'e': [], 'o': [3, 4, 12], 'g': [0], 'l': [2, 3]},.....
+        results looks like: 
+        subs = [{'e': [], 'o': [2], 'g': [], 'l': [0, 1]}, #loads 0 and 1 are connected to substation 0
+        {'e': [], 'o': [3, 4, 12], 'g': [0], 'l': [2, 3]}, #orgin lines 3, 4, 12 and loads 2,3 are connected to substation 1
         .
         .
         '''
@@ -68,6 +69,7 @@ class graphGoalConverter:
             self.sub_to_topos.append(torch.LongTensor(a))
 
         '''
+        results looks like: 
         sub_to_topos = tensor([0, 1, 2]), line # 1,2 and 3 are connected to 0th substation.
                             tensor([3, 4, 5, 6, 7, 8]),
                             tensor([ 9, 10, 11]),
@@ -87,6 +89,7 @@ class graphGoalConverter:
         self.n_feature = 5
 
         '''
+        results looks like: 
         last_topo = array([1, 1, 1, 1, 1.....(177 ones)....)]
         sub_to_topo_begin = [0,3,9,12,....] # 9=3+6, 12=3+6+3, this 3,6,3 are number of lines that are connected to each substations
         sub_to_topo_end = [3,9,12,15] # same as sub_to_topo_begin but start with 1st index value

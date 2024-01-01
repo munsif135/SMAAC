@@ -192,7 +192,7 @@ class Agent(BaseAgent):
         self.save = False        
         
         # reconnect powerline when the powerline in uncontrollable substations is disconnected
-        if False in obs.line_status: #obs.line_status - check whether Lines are connected or not connected
+        if False in obs.line_status: #obs.line_status - check whether power Lines are connected or not 
             act = self.reconnect_line(obs)
             if act is not None:
                 return act

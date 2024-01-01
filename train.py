@@ -159,8 +159,8 @@ class TrainAgent(object):
 
             # sample training chronic
             dist = torch.distributions.categorical.Categorical(logits=torch.Tensor(chronic_records))
-            record_idx = dist.sample().item() #extarcting a sample value b/w 0 & 832. it could be 1 ,4 or 701 
-            chronic_id, ffw = train_chronics_ffw[record_idx] #extracting random chronic_id, ffw from train_chronics_ffw. eg:17,0 or 240,1, 301, 22
+            record_idx = dist.sample().item() #extarcting a sample value b/w 0 & 832. it could be 1 ,4 or 701 etc
+            chronic_id, ffw = train_chronics_ffw[record_idx] #extracting random chronic_id, ffw from train_chronics_ffw. eg:17,0 or 240,1, // 301, 22
             self.env.set_id(chronic_id)
             self.env.seed(seed)
             obs = self.env.reset()
