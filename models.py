@@ -20,6 +20,7 @@ class GATLayer(nn.Module):
         
 class Actor(nn.Module):
     def __init__(self, output_dim, nheads, node, action_dim, use_order, n_sub, dropout=0, init_w=3e-3, log_std_min=-10, log_std_max=1):
+        # output_dim = 128, nheads = 8, node = 177, action_dim = 140, use_order == 'o', n_sub = 11(not sure)
         super(Actor, self).__init__()
         self.gat1 = GATLayer(output_dim, nheads, dropout)
         self.gat2 = GATLayer(output_dim, nheads, dropout)
@@ -27,8 +28,8 @@ class Actor(nn.Module):
         self.n_sub = n_sub
         self.use_order = use_order
         self.down = nn.Linear(output_dim, 1)
-        concat_dim = node * 2
-        self.mu = nn.Linear(concat_dim, action_dim)
+        concat_dim = node * 2 #354
+        self.mu = nn.Linear(concat_dim, action_dim) # 354 , 140
         self.log_std = nn.Linear(concat_dim, action_dim)
         if use_order:
             self.order_mu = nn.Linear(concat_dim + action_dim, n_sub)
@@ -37,7 +38,7 @@ class Actor(nn.Module):
         self.log_std_min = log_std_min
 
     def forward(self, x, adj):
-        x, t = x
+        x, t = x #  x: output of attention layer t: details related to which bus each element is connected
         x = self.gat1(x, adj)
         x = self.gat2(x, adj) 
         x = self.gat3(x, adj)
@@ -47,12 +48,12 @@ class Actor(nn.Module):
         x = F.leaky_relu(x)
         mu = self.mu(x)
         log_std = self.log_std(x)
-        log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)
+        log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max) # clamp the value between -10 and 1
         
         return mu, log_std, state
     
     def mean(self, x, adj):
-        mu, _, state = self.forward(x, adj)
+        mu, _, state = self.forward(x, adj) # mu - are output probablities of all the actions
         action = torch.tanh(mu)
         if self.use_order:
             state = torch.tanh(state)
@@ -61,8 +62,9 @@ class Actor(nn.Module):
             return action, order
         return action
 
-    def sample(self, x, adj):
-        mu, log_std, state = self.forward(x, adj)
+    def sample(self, x, adj): # x: output of attention layer + details related to which bus each element is connected
+        # adj: matrix with 177x177 about connectivity matrix (details related to elements connected to same bus and same substation) + identity matrix
+        mu, log_std, state = self.forward(x, adj) # mu - are output probablities of all the actions , log_std : same like mu but the values are clamped between -10 and 1
         std = log_std.exp()
         normal = Normal(mu, std)
         z = normal.sample()

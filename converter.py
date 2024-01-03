@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import itertools
 
-
+# episode means : This process repeats until the end of the episode, which might happen when a blackout occurs, a given time horizon is met, or some other termination criterion is reached.
 CASE_CONFIG = {
     # sub, gen, load, line
     5: (5, 2, 3, 8),

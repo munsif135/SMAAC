@@ -25,7 +25,7 @@ class Agent(BaseAgent):
         self.bus_thres = kwargs.get('threshold', 0.1)
         self.max_low_len = kwargs.get('max_low_len', 19)
         self.converter = graphGoalConverter(env, mask, mask_hi, self.danger, self.device, self.rule)
-        self.thermal_limit = env._thermal_limit_a
+        self.thermal_limit = env._thermal_limit_a # This attribute stores the maximum allowable flow (in amperes, hence the `_a`) on the powerlines.
         self.convert_obs = self.converter.convert_obs
         self.action_dim = self.converter.n
         self.order_dim = len(self.converter.masked_sorted_sub)
@@ -62,7 +62,7 @@ class Agent(BaseAgent):
         self.tQ = DoubleSoftQ(self.state_dim, self.nheads, self.node_num, self.action_dim,
                         self.use_order, self.order_dim, self.dropout).to(self.device)
         self.actor = Actor(self.state_dim, self.nheads, self.node_num, self.action_dim,
-                        self.use_order, self.order_dim, self.dropout).to(self.device) # state_dim = 128, nheads = 8, node_num = 177,
+                        self.use_order, self.order_dim, self.dropout).to(self.device) # state_dim = 128, nheads = 8, node_num = 177, action_dim = 140, use_order == 'o', order_dim = 11(not sure)
         
         # copy parameters
         self.tQ.load_state_dict(self.Q.state_dict())
@@ -88,7 +88,7 @@ class Agent(BaseAgent):
     
     def is_safe(self, obs):
         #rho: the relative flow on this powerline (in %) (sum over all powerlines)), thermal_limit: maximum flow allowed on the the powerline (sum over all powerlines)
-        for ratio, limit in zip(obs.rho, self.thermal_limit):
+        for ratio, limit in zip(obs.rho, self.thermal_limit): #thermal_limit This attribute stores the maximum allowable flow (in amperes, hence the `_a`) on the powerlines.
             # Seperate big line and small line
             if (limit < 400.00 and ratio >= self.danger-0.05) or ratio >= self.danger:
                 return False
@@ -239,7 +239,7 @@ class Agent(BaseAgent):
 
     def high_act(self, stacked_state, adj, sample=True):
         order, Q1, Q2 = None, 0, 0
-        with torch.no_grad():
+        with torch.no_grad(): # Operations within this block won't track gradients
             # stacked_state # B, N, F
             stacked_t, stacked_x = stacked_state[..., -1:], stacked_state[..., :-1] # stacked_t (177x1) :  details related to which bus each element is connected
             emb_input = stacked_x # stacked_x.shape - 177x30, which means last 6 p_, rho_, danger_, over_, main_ observations (p_, rho_... = 177X1X5x6 )

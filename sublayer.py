@@ -56,16 +56,16 @@ class MultiHeadAttention(nn.Module):
 
         d_k, n_head = self.d_k, self.n_head
 
-        sz_b, len_q, _ = q.size()
+        sz_b, len_q, _ = q.size() # sz_b = 1 , len_q = 177
         sz_b, len_k, _ = k.size()
         sz_b, len_v, _ = v.size()
         
         #splitting the result of self.w_qs(q) along the axis of 
-        q = self.w_qs(q).view(sz_b, len_q, n_head, d_k) #.view() Reshapes a tensor without making a copy of its data.
+        q = self.w_qs(q).view(sz_b, len_q, n_head, d_k) #.view() Reshapes a tensor without making a copy of its data. Size([1, 177, 8, 32])
         k = self.w_ks(k).view(sz_b, len_k, n_head, d_k)
         v = self.w_vs(v).view(sz_b, len_v, n_head, d_k)
 
-        q = q.permute(2, 0, 1, 3).contiguous().view(-1, len_q, d_k) # (n*b) x lq x dk ,permute(2, 0, 1, 3) - rearrange the dimension in the order as 2nd dim as 0th dim, 0 th dim as 1st dim
+        q = q.permute(2, 0, 1, 3).contiguous().view(-1, len_q, d_k) # (n*b) x lq x dk ,permute(2, 0, 1, 3) - rearrange the dimension in the order as 2nd dim as 0th dim, 0 th dim as 1st dim, Size([8, 177, 32])
         k = k.permute(2, 0, 1, 3).contiguous().view(-1, len_k, d_k) # (n*b) x lk x dk
         v = v.permute(2, 0, 1, 3).contiguous().view(-1, len_v, d_k) # (n*b) x lv x dv
 
@@ -80,7 +80,7 @@ class MultiHeadAttention(nn.Module):
 
 
 class PositionwiseFeedForward(nn.Module):
-    def __init__(self, d_in, dhid, dropout=0):
+    def __init__(self, d_in, dhid, dropout=0): # d_in = 128, dhid: 128
         super().__init__()
         self.w_1 = nn.Linear(d_in, dhid)
         self.w_2 = nn.Linear(dhid, d_in)
