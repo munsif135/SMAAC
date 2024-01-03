@@ -62,7 +62,7 @@ class Agent(BaseAgent):
         self.tQ = DoubleSoftQ(self.state_dim, self.nheads, self.node_num, self.action_dim,
                         self.use_order, self.order_dim, self.dropout).to(self.device)
         self.actor = Actor(self.state_dim, self.nheads, self.node_num, self.action_dim,
-                        self.use_order, self.order_dim, self.dropout).to(self.device)
+                        self.use_order, self.order_dim, self.dropout).to(self.device) # state_dim = 128, nheads = 8, node_num = 177,
         
         # copy parameters
         self.tQ.load_state_dict(self.Q.state_dict())
@@ -241,8 +241,8 @@ class Agent(BaseAgent):
         order, Q1, Q2 = None, 0, 0
         with torch.no_grad():
             # stacked_state # B, N, F
-            stacked_t, stacked_x = stacked_state[..., -1:], stacked_state[..., :-1]
-            emb_input = stacked_x # stacked_x.shape - 177x30, which means last 5 p_, rho_, danger_, over_, main_ observations
+            stacked_t, stacked_x = stacked_state[..., -1:], stacked_state[..., :-1] # stacked_t (177x1) :  details related to which bus each element is connected
+            emb_input = stacked_x # stacked_x.shape - 177x30, which means last 6 p_, rho_, danger_, over_, main_ observations (p_, rho_... = 177X1X5x6 )
             state = self.emb(emb_input, adj).detach() # multiheadded attention
             actor_input = [state, stacked_t.squeeze(-1)]
             if sample:
@@ -271,7 +271,7 @@ class Agent(BaseAgent):
 
     def generate_goal(self, sample, obs, nosave=False):
         stacked_state = self.get_current_state().to(self.device) # Last 5 observations + bus assigments of all the elements, tensor of shape 177x31 (details above in get_current_state function)
-        adj = self.adj.unsqueeze(0) # matrix with 177x177 about connectivity matrix (details related to elements connected to same bus and same substation)
+        adj = self.adj.unsqueeze(0) # matrix with 177x177 about connectivity matrix (details related to elements connected to same bus and same substation) + identity matrix
         goal, bus_goal, low_actions, order, Q1, Q2 = self.make_candidate_goal(stacked_state, adj, sample, obs)
         return goal, bus_goal, low_actions, order, Q1, Q2
     

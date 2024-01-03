@@ -47,7 +47,7 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.gate = GRUGate(d_model)
             
-    def forward(self, x, adj): # connectivity_matrix +  identity matrix
+    def forward(self, x, adj): # adj = connectivity_matrix +  identity matrix
         residual = x
         x = self.ln(x)
         q = x
