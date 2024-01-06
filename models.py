@@ -25,14 +25,14 @@ class Actor(nn.Module):
         self.gat1 = GATLayer(output_dim, nheads, dropout)
         self.gat2 = GATLayer(output_dim, nheads, dropout)
         self.gat3 = GATLayer(output_dim, nheads, dropout)
-        self.n_sub = n_sub
-        self.use_order = use_order
+        self.n_sub = n_sub # n_sub = 11
+        self.use_order = use_order # use_order = 'o',
         self.down = nn.Linear(output_dim, 1)
         concat_dim = node * 2 #354
         self.mu = nn.Linear(concat_dim, action_dim) # 354 , 140
         self.log_std = nn.Linear(concat_dim, action_dim)
         if use_order:
-            self.order_mu = nn.Linear(concat_dim + action_dim, n_sub)
+            self.order_mu    = nn.Linear(concat_dim + action_dim, n_sub) # concat_dim + action_dim = 494, 11
             self.order_log_std = nn.Linear(concat_dim + action_dim, n_sub)
         self.log_std_max = log_std_max
         self.log_std_min = log_std_min
@@ -46,13 +46,13 @@ class Actor(nn.Module):
         x = torch.cat([x, t], dim=-1)
         state = x
         x = F.leaky_relu(x)
-        mu = self.mu(x)
-        log_std = self.log_std(x)
+        mu = self.mu(x) # Calculate mean of action distribution
+        log_std = self.log_std(x) # Calculate log_std of action distribution
         log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max) # clamp the value between -10 and 1
         
         return mu, log_std, state
     
-    def mean(self, x, adj):
+    def mean(self, x, adj): # findin mean standard deviation
         mu, _, state = self.forward(x, adj) # mu - are output probablities of all the actions
         action = torch.tanh(mu)
         if self.use_order:
@@ -65,8 +65,8 @@ class Actor(nn.Module):
     def sample(self, x, adj): # x: output of attention layer + details related to which bus each element is connected
         # adj: matrix with 177x177 about connectivity matrix (details related to elements connected to same bus and same substation) + identity matrix
         mu, log_std, state = self.forward(x, adj) # mu - are output probablities of all the actions , log_std : same like mu but the values are clamped between -10 and 1
-        std = log_std.exp()
-        normal = Normal(mu, std)
+        std = log_std.exp() # Convert to standard deviation
+        normal = Normal(mu, std) # Sample action from the Gaussian distribution
         z = normal.sample()
         action = torch.tanh(z)
         if self.use_order:
